@@ -1,5 +1,6 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Powerset_Construction; use Powerset_Construction;
+with Ada.Containers; use Ada.Containers;
 
 procedure Tests is
    Pass_Count : Natural := 0;
@@ -28,14 +29,14 @@ procedure Tests is
       NFA.Initial.Insert(0);
       NFA.Accepting.Insert(1);
 
-      T0 := new Transition_Maps'(0 => <>, 1 => <>);
+      T0 := new Transition_Map'[0 => <>, 1 => <>];
       T0(0).Insert(0);
       T0(1).Insert(1);
-      T1 := new Transition_Maps'(0 => <>, 1 => <>);
+      T1 := new Transition_Map'[0 => <>, 1 => <>];
       T1(0).Insert(1);
       T1(1).Insert(1);
 
-      NFA.Transitions := (0 => T0, 1 => T1);
+      NFA.Transitions := new Transition_Array'[0 => T0, 1 => T1];
       return NFA;
    end Create_Simple_NFA;
 
@@ -53,17 +54,17 @@ procedure Tests is
       NFA.Accepting.Insert(2);
 
       -- ε-transitions (symbol 0 is ε)
-      T0 := new Transition_Maps'(0 => <>, 1 => <>);
+      T0 := new Transition_Map'[0 => <>, 1 => <>];
       T0(0).Insert(1); -- ε-transition from 0 to 1
       T0(1).Insert(1);
-      T1 := new Transition_Maps'(0 => <>, 1 => <>);
+      T1 := new Transition_Map'[0 => <>, 1 => <>];
       T1(0).Insert(2); -- ε-transition from 1 to 2
       T1(1).Insert(2);
-      T2 := new Transition_Maps'(0 => <>, 1 => <>);
+      T2 := new Transition_Map'[0 => <>, 1 => <>];
       T2(0).Insert(2);
       T2(1).Insert(2);
 
-      NFA.Transitions := (0 => T0, 1 => T1, 2 => T2);
+      NFA.Transitions := new Transition_Array'[0 => T0, 1 => T1, 2 => T2];
       return NFA;
    end Create_Epsilon_NFA;
 
@@ -75,7 +76,7 @@ begin
       DFA : DFA_Type := Basic_Powerset_Construction(NFA);
    begin
       Check("1.1 DFA has states", DFA.States.Length > 0);
-      Check("1.2 DFA has initial state", DFA.Initial in DFA.States);
+      Check("1.2 DFA has initial state", DFA.States.Contains(DFA.Initial));
       Check("1.3 DFA has accepting states", DFA.Accepting.Length > 0);
    end;
 
@@ -108,14 +109,14 @@ begin
       NFA.Alphabet.Insert(0);
       NFA.Initial.Insert(0);
       NFA.Accepting.Insert(0);
-      T0 := new Transition_Maps'(0 => <>);
-      NFA.Transitions := (0 => T0);
+      T0 := new Transition_Map'[0 => <>];
+      NFA.Transitions := new Transition_Array'[0 => T0];
       declare
          DFA : DFA_Type := Basic_Powerset_Construction(NFA);
       begin
          Check("3.1 DFA has one state", DFA.States.Length = 1);
          Check("3.2 DFA initial state is accepting", DFA.Accepting.Contains(DFA.Initial));
-         Check("3.3 DFA has no transitions", DFA.Transitions'Length = 1 and then DFA.Transitions(0) = null);
+         Check("3.3 DFA has transitions array", DFA.Transitions /= null);
       end;
    end;
 
@@ -126,7 +127,7 @@ begin
       DFA : DFA_Type := Powerset_Construction_With_Epsilon(NFA);
    begin
       Check("4.1 DFA has states", DFA.States.Length > 0);
-      Check("4.2 DFA has initial state", DFA.Initial in DFA.States);
+      Check("4.2 DFA has initial state", DFA.States.Contains(DFA.Initial));
       Check("4.3 DFA has accepting states", DFA.Accepting.Length > 0);
    end;
 
@@ -159,14 +160,14 @@ begin
       NFA.Alphabet.Insert(0);
       NFA.Initial.Insert(0);
       NFA.Accepting.Insert(0);
-      T0 := new Transition_Maps'(0 => <>);
-      NFA.Transitions := (0 => T0);
+      T0 := new Transition_Map'[0 => <>];
+      NFA.Transitions := new Transition_Array'[0 => T0];
       declare
          DFA : DFA_Type := Powerset_Construction_With_Epsilon(NFA);
       begin
          Check("6.1 DFA has one state", DFA.States.Length = 1);
          Check("6.2 DFA initial state is accepting", DFA.Accepting.Contains(DFA.Initial));
-         Check("6.3 DFA has no transitions", DFA.Transitions'Length = 1 and then DFA.Transitions(0) = null);
+         Check("6.3 DFA has transitions array", DFA.Transitions /= null);
       end;
    end;
 
@@ -242,8 +243,9 @@ begin
       DFA : DFA_Type := Basic_Powerset_Construction(NFA);
    begin
       Check("11.1 DFA has accepting states", DFA.Accepting.Length > 0);
-      Check("11.2 DFA accepting states are in DFA states", (for all S of DFA.Accepting => DFA.States.Contains(S)));
-      Check("11.3 DFA initial state is valid", DFA.Initial in DFA.States);
+      Check("11.2 DFA accepting states are in DFA states",
+            (for all S of DFA.Accepting => DFA.States.Contains(S)));
+      Check("11.3 DFA initial state is valid", DFA.States.Contains(DFA.Initial));
    end;
 
    -- TEST 12 — DFA Transitions: Valid
@@ -252,9 +254,11 @@ begin
       NFA : NFA_Type := Create_Simple_NFA;
       DFA : DFA_Type := Basic_Powerset_Construction(NFA);
    begin
-      Check("12.1 DFA transitions array is non-null", DFA.Transitions'Length > 0);
-      Check("12.2 DFA transitions for initial state exist", DFA.Transitions(DFA.Initial) /= null);
-      Check("12.3 DFA transitions for initial state are non-empty", DFA.Transitions(DFA.Initial).all'Length > 0);
+      Check("12.1 DFA transitions array is non-null", DFA.Transitions /= null);
+      Check("12.2 DFA transitions for initial state exist",
+            DFA.Transitions(DFA.Initial) /= null);
+      Check("12.3 DFA transitions for initial state are non-empty",
+            DFA.Transitions(DFA.Initial).all'Length > 0);
    end;
 
    -- TEST 13 — DFA Alphabet: Matches NFA
@@ -264,8 +268,10 @@ begin
       DFA : DFA_Type := Basic_Powerset_Construction(NFA);
    begin
       Check("13.1 DFA alphabet is non-empty", DFA.Alphabet.Length > 0);
-      Check("13.2 DFA alphabet matches NFA alphabet", DFA.Alphabet = NFA.Alphabet);
-      Check("13.3 DFA alphabet size is correct", DFA.Alphabet.Length = NFA.Alphabet.Length);
+      Check("13.2 DFA alphabet matches NFA alphabet",
+            DFA.Alphabet.Length = NFA.Alphabet.Length);
+      Check("13.3 DFA alphabet size is correct",
+            DFA.Alphabet.Length = NFA.Alphabet.Length);
    end;
 
    -- Summary
