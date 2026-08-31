@@ -34,14 +34,14 @@ procedure Tests is
       NFA.Initial.Insert(0);
       NFA.Accepting.Insert(1);
 
-      T0 := new Transition_Map'[0 => <>, 1 => <>];
-      T0[0].Insert(0);
-      T0[1].Insert(1);
-      T1 := new Transition_Map'[0 => <>, 1 => <>];
-      T1[0].Insert(1);
-      T1[1].Insert(1);
+      T0 := new Transition_Map'(0 => <>, 1 => <>);
+      T0(0).Insert(0);
+      T0(1).Insert(1);
+      T1 := new Transition_Map'(0 => <>, 1 => <>);
+      T1(0).Insert(1);
+      T1(1).Insert(1);
 
-      NFA.Transitions := new Transition_Array'[0 => T0, 1 => T1];
+      NFA.Transitions := new Transition_Array'(0 => T0, 1 => T1);
       return NFA;
    end Create_Simple_NFA;
 
@@ -64,17 +64,17 @@ procedure Tests is
       NFA.Accepting.Insert(2);
 
       -- ε-transitions (symbol 0 is ε)
-      T0 := new Transition_Map'[0 => <>, 1 => <>];
-      T0[0].Insert(1); -- ε-transition from 0 to 1
-      T0[1].Insert(1);
-      T1 := new Transition_Map'[0 => <>, 1 => <>];
-      T1[0].Insert(2); -- ε-transition from 1 to 2
-      T1[1].Insert(2);
-      T2 := new Transition_Map'[0 => <>, 1 => <>];
-      T2[0].Insert(2);
-      T2[1].Insert(2);
+      T0 := new Transition_Map'(0 => <>, 1 => <>);
+      T0(0).Insert(1); -- ε-transition from 0 to 1
+      T0(1).Insert(1);
+      T1 := new Transition_Map'(0 => <>, 1 => <>);
+      T1(0).Insert(2); -- ε-transition from 1 to 2
+      T1(1).Insert(2);
+      T2 := new Transition_Map'(0 => <>, 1 => <>);
+      T2(0).Insert(2);
+      T2(1).Insert(2);
 
-      NFA.Transitions := new Transition_Array'[0 => T0, 1 => T1, 2 => T2];
+      NFA.Transitions := new Transition_Array'(0 => T0, 1 => T1, 2 => T2);
       return NFA;
    end Create_Epsilon_NFA;
 
@@ -129,8 +129,8 @@ begin
       NFA.Alphabet.Insert(0);
       NFA.Initial.Insert(0);
       NFA.Accepting.Insert(0);
-      T0 := new Transition_Map'[0 => <>];
-      NFA.Transitions := new Transition_Array'[0 => T0];
+      T0 := new Transition_Map'(0 => <>);
+      NFA.Transitions := new Transition_Array'(0 => T0);
       declare
          DFA : constant DFA_Type := Basic_Powerset_Construction(NFA);
       begin
@@ -190,8 +190,8 @@ begin
       NFA.Alphabet.Insert(0);
       NFA.Initial.Insert(0);
       NFA.Accepting.Insert(0);
-      T0 := new Transition_Map'[0 => <>];
-      NFA.Transitions := new Transition_Array'[0 => T0];
+      T0 := new Transition_Map'(0 => <>);
+      NFA.Transitions := new Transition_Array'(0 => T0);
       declare
          DFA : constant DFA_Type := Powerset_Construction_With_Epsilon(NFA);
       begin
