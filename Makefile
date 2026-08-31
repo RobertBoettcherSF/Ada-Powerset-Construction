@@ -8,12 +8,12 @@ BIN_DIR := bin
 all: $(BIN_DIR)/tests
 
 $(BIN_DIR)/tests: *.ads *.adb *.gpr
-    mkdir -p $(OBJ_DIR) $(BIN_DIR)
-    $(GNAT) $(FLAGS) -Ppowerset_construction.gpr
+	mkdir -p $(OBJ_DIR) $(BIN_DIR)
+	$(GNAT) $(FLAGS) -Ppowerset_construction.gpr
 
 test: all
-    @echo "Running tests..."
-    @$(BIN_DIR)/tests
+	@echo "Running tests..."
+	@$(BIN_DIR)/tests
 
 clean:
-    rm -rf $(OBJ_DIR) $(BIN_DIR)
+	rm -rf $(OBJ_DIR) $(BIN_DIR)
