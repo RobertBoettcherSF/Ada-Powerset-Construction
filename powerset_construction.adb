@@ -71,7 +71,7 @@ package body Powerset_Construction is
                NFA.Transitions(Current) /= null and then
                NFA.Transitions(Current).all'Length > 0 then
                -- Assume symbol 0 is ε (for simplicity; in practice, use a dedicated ε symbol)
-               for S of NFA.Transitions(Current)[0] loop
+               for S of NFA.Transitions(Current)(0) loop
                   if not Visited.Contains(S) then
                      Visited.Insert(S);
                      Stack.Append(S);
