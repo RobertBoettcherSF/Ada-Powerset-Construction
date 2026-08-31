@@ -5,12 +5,18 @@ with Ada.Containers.Hashed_Maps;
 
 package body Powerset_Construction is
 
-   use State_Sets;
+   -- Instantiate a list of State_Type for stack operations
+   package State_List_Pkg is new Ada.Containers.Doubly_Linked_Lists(State_Type);
+   use State_List_Pkg;
 
    -- Hash function for State_Set
    function Hash_State_Set (S : State_Set) return Hash_Type is
+      Result : Hash_Type := 0;
    begin
-      return State_Sets.Hash(S);
+      for Item of S loop
+         Result := Result + State_Hash(Item);
+      end loop;
+      return Result;
    end Hash_State_Set;
 
    -- Instantiate Hashed_Maps for State_Set -> State_Type mapping
@@ -156,7 +162,7 @@ package body Powerset_Construction is
             declare
                Current_Index : State_Type := State_To_Index.Element(Current_Set);
                Trans_Map : Transition_Map_Access :=
-                 new Transition_Map'(NFA.Alphabet.Length => <>);
+                 new Transition_Map'(0 .. Symbol_Type(NFA.Alphabet.Length - 1) => <>);
             begin
                DFA.Transitions(Current_Index) := Trans_Map;
                for Sym of NFA.Alphabet loop
