@@ -1,9 +1,7 @@
 --  Powerset Construction Algorithm Implementation
 
-with Ada.Containers.Vectors;
-with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Doubly_Linked_Lists;
-with Ada.Containers.Hashed_Maps;
+use Ada.Containers;
 
 package body Powerset_Construction is
 
@@ -12,7 +10,7 @@ package body Powerset_Construction is
      (NFA : NFA_Type; State : State_Type) return State_Set
    is
       Result : State_Set;
-      Stack  : Ada.Containers.Doubly_Linked_Lists.List;
+      Stack  : Doubly_Linked_Lists.List;
       Visited : array (State_Type'Range) of Boolean := (others => False);
    begin
       Stack.Append(State);
@@ -25,9 +23,10 @@ package body Powerset_Construction is
             Stack.Delete_First;
             Result.Insert(Current);
 
-            if NFA.Transitions(Current) /= null and then
-               NFA.Transitions(Current).all'Length > 0 and then
-               NFA.Transitions(Current)(0).Length > 0 then
+            if NFA.Transitions /= null and then
+               Current in NFA.Transitions.all'Range and then
+               NFA.Transitions(Current) /= null and then
+               NFA.Transitions(Current).all'Length > 0 then
                -- Assume symbol 0 is ε (for simplicity; in practice, use a dedicated ε symbol)
                for S of NFA.Transitions(Current)(0) loop
                   if not Visited(S) then
@@ -59,8 +58,10 @@ package body Powerset_Construction is
       Result : State_Set;
    begin
       for S of Current loop
-         if NFA.Transitions(S) /= null and then
-            Symbol in NFA.Transitions(S)'Range and then
+         if NFA.Transitions /= null and then
+            S in NFA.Transitions.all'Range and then
+            NFA.Transitions(S) /= null and then
+            Symbol in NFA.Transitions(S).all'Range and then
             NFA.Transitions(S)(Symbol).Length > 0 then
             Result.Union(NFA.Transitions(S)(Symbol));
          end if;
@@ -70,10 +71,10 @@ package body Powerset_Construction is
 
    -- Basic powerset construction (no ε-moves)
    function Basic_Powerset_Construction (NFA : NFA_Type) return DFA_Type is
-      use Ada.Containers;
+      use Doubly_Linked_Lists;
 
       -- Map from State_Set to State_Type (DFA state)
-      package State_Set_Maps is new Ada.Containers.Hashed_Maps
+      package State_Set_Maps is new Hashed_Maps
         (Key_Type        => State_Set,
          Element_Type    => State_Type,
          Hash            => State_Sets.Hash,
@@ -81,10 +82,7 @@ package body Powerset_Construction is
       State_To_Index : State_Set_Maps.Map;
 
       -- List of DFA states (State_Set)
-      DFA_States : Ada.Containers.Doubly_Linked_Lists.List;
-
-      -- DFA transition map
-      DFA_Transitions : Ada.Containers.Doubly_Linked_Lists.List;
+      DFA_States : List;
 
       -- Current DFA state index
       Next_State_Index : State_Type := 0;
@@ -106,9 +104,9 @@ package body Powerset_Construction is
       Next_State_Index := Next_State_Index + 1;
 
       -- Process each DFA state
-      for I in 0 .. DFA_States.Length - 1 loop
+      for I in 0 .. Count_Type(DFA_States.Length - 1) loop
          declare
-            Current_Set : State_Set := DFA_States.Element(I);
+            Current_Set : State_Set := DFA_States.Element(Index_Type(I));
          begin
             -- For each symbol in the alphabet
             for Sym of NFA.Alphabet loop
@@ -132,19 +130,21 @@ package body Powerset_Construction is
       -- Build DFA
       declare
          DFA : DFA_Type;
-         DFA_Transitions_Array : array (State_Type range 0 .. Next_State_Index - 1) of Transition_Map_Access;
+         DFA_Transitions_Array : Transition_Array_Access := new Transition_Array'(0 .. State_Type(Next_State_Index - 1) => null);
       begin
          DFA.States := State_Set(State_To_Index.Key_Set);
          DFA.Alphabet := NFA.Alphabet;
          DFA.Initial := DFA_Initial;
+         DFA.Transitions := DFA_Transitions_Array;
 
          -- Build DFA transitions
-         for I in 0 .. DFA_States.Length - 1 loop
+         for I in 0 .. Count_Type(DFA_States.Length - 1) loop
             declare
-               Current_Set : State_Set := DFA_States.Element(I);
+               Current_Set : State_Set := DFA_States.Element(Index_Type(I));
                Current_Index : State_Type := State_To_Index.Element(Current_Set);
+               Trans_Map : Transition_Map_Access := new Transition_Map'(NFA.Alphabet.Length => <>);
             begin
-               DFA_Transitions_Array(Current_Index) := new Transition_Maps'(NFA.Alphabet.Length => <>);
+               DFA.Transitions(Current_Index) := Trans_Map;
                for Sym of NFA.Alphabet loop
                   declare
                      Next_Set : State_Set := Next_State_Set(NFA, Current_Set, Sym);
@@ -154,15 +154,13 @@ package body Powerset_Construction is
                         Next_Set := Epsilon_Closure(NFA, Next_Set);
                         if State_To_Index.Contains(Next_Set) then
                            Next_Index := State_To_Index.Element(Next_Set);
-                           DFA_Transitions_Array(Current_Index)(Sym).Insert(Next_Index);
+                           DFA.Transitions(Current_Index)(Sym).Insert(Next_Index);
                         end if;
                      end if;
                   end;
                end loop;
             end;
          end loop;
-
-         DFA.Transitions := DFA_Transitions_Array;
 
          -- Build DFA accepting states
          for S of DFA.States loop
