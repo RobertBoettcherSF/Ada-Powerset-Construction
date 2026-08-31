@@ -11,9 +11,9 @@ package body Powerset_Construction is
    package State_List_Pkg is new Ada.Containers.Doubly_Linked_Lists(State_Type);
    use State_List_Pkg;
 
-   -- Instantiate a vector of State_Set for DFA states
+   -- Instantiate a vector of State_Set for DFA states with State_Type index
    package State_Set_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
+     (Index_Type   => State_Type,
       Element_Type => State_Set);
    use State_Set_Vectors;
 
@@ -40,7 +40,7 @@ package body Powerset_Construction is
      (States : State_Set_Vectors.Vector; Target : State_Set) return State_Type
    is
    begin
-      for I in 0 .. State_Type(States.Length - 1) loop
+      for I in 0 .. States.Length - 1 loop
          if State_Sets_Equal(States.Element(I), Target) then
             return I;
          end if;
@@ -172,7 +172,7 @@ package body Powerset_Construction is
            new Transition_Array'(0 .. Next_State_Index - 1 => null);
       begin
          -- Populate DFA.States from DFA_States indices
-         for I in 0 .. State_Type(DFA_States.Length - 1) loop
+         for I in 0 .. DFA_States.Length - 1 loop
             DFA.States.Insert(I);
          end loop;
 
@@ -181,7 +181,7 @@ package body Powerset_Construction is
          DFA.Transitions := DFA_Transitions_Array;
 
          -- Build DFA transitions
-         for I in 0 .. State_Type(DFA_States.Length - 1) loop
+         for I in 0 .. DFA_States.Length - 1 loop
             declare
                Current_Set : State_Set := DFA_States.Element(I);
                Trans_Map : Transition_Map_Access :=
@@ -206,7 +206,7 @@ package body Powerset_Construction is
          end loop;
 
          -- Build DFA accepting states
-         for I in 0 .. State_Type(DFA_States.Length - 1) loop
+         for I in 0 .. DFA_States.Length - 1 loop
             declare
                State_Set_Key : State_Set := DFA_States.Element(I);
             begin
