@@ -3,7 +3,6 @@
 
 with Ada.Containers.Vectors;
 with Ada.Containers.Hashed_Sets;
-with Ada.Containers.Doubly_Linked_Lists;
 
 package Powerset_Construction is
    pragma Pure;
@@ -28,15 +27,18 @@ package Powerset_Construction is
       Equivalent_Elements => "=");
    subtype Symbol_Set is Symbol_Sets.Set;
 
-   -- Transition type: from (state, symbol) to set of states
-   type Transition_Maps is array (Symbol_Type range <>) of State_Set;
-   type Transition_Map_Access is access Transition_Maps;
+   -- Transition type: from symbol to set of states
+   type Transition_Map is array (Symbol_Type range <>) of State_Set;
+   type Transition_Map_Access is access Transition_Map;
+
+   -- Transition array: from state to transition map
+   type Transition_Array_Type is array (State_Type range <>) of Transition_Map_Access;
 
    -- NFA and DFA types
    type NFA_Type is record
       States      : State_Set;
       Alphabet    : Symbol_Set;
-      Transitions : array (State_Type range <>) of Transition_Map_Access;
+      Transitions : Transition_Array_Type;
       Initial     : State_Set;
       Accepting   : State_Set;
    end record;
@@ -44,7 +46,7 @@ package Powerset_Construction is
    type DFA_Type is record
       States      : State_Set;
       Alphabet    : Symbol_Set;
-      Transitions : array (State_Type range <>) of Transition_Map_Access;
+      Transitions : Transition_Array_Type;
       Initial     : State_Type;
       Accepting   : State_Set;
    end record;
