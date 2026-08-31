@@ -5,16 +5,25 @@ with Ada.Containers.Hashed_Maps;
 
 package body Powerset_Construction is
 
-   -- Instantiate a list of State_Type for stack operations
-   package State_List_Pkg is new Ada.Containers.Doubly_Linked_Lists(State_Type);
-   use State_List_Pkg;
+   use State_Sets;
+
+   -- Hash function for State_Set
+   function Hash_State_Set (S : State_Set) return Hash_Type is
+   begin
+      return State_Sets.Hash(S);
+   end Hash_State_Set;
 
    -- Instantiate Hashed_Maps for State_Set -> State_Type mapping
    package State_Set_Maps is new Ada.Containers.Hashed_Maps
      (Key_Type        => State_Set,
       Element_Type    => State_Type,
-      Hash            => State_Sets.Hash,
+      Hash            => Hash_State_Set,
       Equivalent_Keys => State_Sets."=");
+   use State_Set_Maps;
+
+   -- Instantiate a list of State_Set for DFA states
+   package State_Set_List_Pkg is new Ada.Containers.Doubly_Linked_Lists(State_Set);
+   use State_Set_List_Pkg;
 
    -- Helper: Compute ε-closure for a single state
    function Epsilon_Closure_For_State
@@ -82,14 +91,11 @@ package body Powerset_Construction is
 
    -- Basic powerset construction (no ε-moves)
    function Basic_Powerset_Construction (NFA : NFA_Type) return DFA_Type is
-      use State_List_Pkg;
-      use State_Set_Maps;
-
       -- Map from State_Set to State_Type (DFA state)
       State_To_Index : State_Set_Maps.Map;
 
       -- List of DFA states (State_Set)
-      DFA_States : State_List_Pkg.List;
+      DFA_States : State_Set_List_Pkg.List;
 
       -- Current DFA state index
       Next_State_Index : State_Type := 0;
@@ -111,33 +117,24 @@ package body Powerset_Construction is
       Next_State_Index := Next_State_Index + 1;
 
       -- Process each DFA state
-      declare
-         States_Iter : State_List_Pkg.Iterator := DFA_States.Iterate;
-      begin
-         while State_List_Pkg.Has_Element(States_Iter) loop
+      for Current_Set of DFA_States loop
+         -- For each symbol in the alphabet
+         for Sym of NFA.Alphabet loop
             declare
-               Current_Set : State_Set := State_List_Pkg.Element(States_Iter);
+               Next_Set : State_Set := Next_State_Set(NFA, Current_Set, Sym);
             begin
-               -- For each symbol in the alphabet
-               for Sym of NFA.Alphabet loop
-                  declare
-                     Next_Set : State_Set := Next_State_Set(NFA, Current_Set, Sym);
-                  begin
-                     if Next_Set.Length > 0 then
-                        Next_Set := Epsilon_Closure(NFA, Next_Set);
-                        -- Check if this set is already a DFA state
-                        if not State_To_Index.Contains(Next_Set) then
-                           State_To_Index.Insert(Next_Set, Next_State_Index);
-                           DFA_States.Append(Next_Set);
-                           Next_State_Index := Next_State_Index + 1;
-                        end if;
-                     end if;
-                  end;
-               end loop;
+               if Next_Set.Length > 0 then
+                  Next_Set := Epsilon_Closure(NFA, Next_Set);
+                  -- Check if this set is already a DFA state
+                  if not State_To_Index.Contains(Next_Set) then
+                     State_To_Index.Insert(Next_Set, Next_State_Index);
+                     DFA_States.Append(Next_Set);
+                     Next_State_Index := Next_State_Index + 1;
+                  end if;
+               end if;
             end;
-            State_List_Pkg.Next(States_Iter);
          end loop;
-      end;
+      end loop;
 
       -- Build DFA
       declare
@@ -155,37 +152,29 @@ package body Powerset_Construction is
          DFA.Transitions := DFA_Transitions_Array;
 
          -- Build DFA transitions
-         declare
-            States_Iter : State_List_Pkg.Iterator := DFA_States.Iterate;
-            State_Index : State_Type := 0;
-         begin
-            while State_List_Pkg.Has_Element(States_Iter) loop
-               declare
-                  Current_Set : State_Set := State_List_Pkg.Element(States_Iter);
-                  Current_Index : State_Type := State_To_Index.Element(Current_Set);
-                  Trans_Map : Transition_Map_Access :=
-                    new Transition_Map'(NFA.Alphabet.Length => <>);
-               begin
-                  DFA.Transitions(Current_Index) := Trans_Map;
-                  for Sym of NFA.Alphabet loop
-                     declare
-                        Next_Set : State_Set := Next_State_Set(NFA, Current_Set, Sym);
-                        Next_Index : State_Type;
-                     begin
-                        if Next_Set.Length > 0 then
-                           Next_Set := Epsilon_Closure(NFA, Next_Set);
-                           if State_To_Index.Contains(Next_Set) then
-                              Next_Index := State_To_Index.Element(Next_Set);
-                              DFA.Transitions(Current_Index)(Sym).Insert(Next_Index);
-                           end if;
+         for Current_Set of DFA_States loop
+            declare
+               Current_Index : State_Type := State_To_Index.Element(Current_Set);
+               Trans_Map : Transition_Map_Access :=
+                 new Transition_Map'(NFA.Alphabet.Length => <>);
+            begin
+               DFA.Transitions(Current_Index) := Trans_Map;
+               for Sym of NFA.Alphabet loop
+                  declare
+                     Next_Set : State_Set := Next_State_Set(NFA, Current_Set, Sym);
+                     Next_Index : State_Type;
+                  begin
+                     if Next_Set.Length > 0 then
+                        Next_Set := Epsilon_Closure(NFA, Next_Set);
+                        if State_To_Index.Contains(Next_Set) then
+                           Next_Index := State_To_Index.Element(Next_Set);
+                           DFA.Transitions(Current_Index)(Sym).Insert(Next_Index);
                         end if;
-                     end;
-                  end loop;
-               end;
-               State_List_Pkg.Next(States_Iter);
-               State_Index := State_Index + 1;
-            end loop;
-         end;
+                     end if;
+                  end;
+               end loop;
+            end;
+         end loop;
 
          -- Build DFA accepting states
          for S of State_To_Index loop
