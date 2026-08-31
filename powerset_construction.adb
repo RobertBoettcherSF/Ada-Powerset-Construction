@@ -71,7 +71,7 @@ package body Powerset_Construction is
                NFA.Transitions(Current) /= null and then
                NFA.Transitions(Current).all'Length > 0 then
                -- Assume symbol 0 is ε (for simplicity; in practice, use a dedicated ε symbol)
-               for S of NFA.Transitions(Current)(0) loop
+               for S of NFA.Transitions(Current)[0] loop
                   if not Visited.Contains(S) then
                      Visited.Insert(S);
                      Stack.Append(S);
@@ -142,7 +142,7 @@ package body Powerset_Construction is
       -- Process each DFA state using BFS
       while not Queue_Sets.Is_Empty loop
          declare
-            Current_Set : State_Set := Queue_Sets.First_Element;
+            Current_Set : constant State_Set := Queue_Sets.First_Element;
          begin
             Queue_Sets.Delete_First;
 
@@ -168,7 +168,7 @@ package body Powerset_Construction is
       -- Build DFA
       declare
          DFA : DFA_Type;
-         DFA_Transitions_Array : Transition_Array_Access :=
+         DFA_Transitions_Array : constant Transition_Array_Access :=
            new Transition_Array'(0 .. Next_State_Index - 1 => null);
       begin
          -- Populate DFA.States from DFA_States indices
@@ -183,8 +183,8 @@ package body Powerset_Construction is
          -- Build DFA transitions
          for I in 0 .. State_Type(DFA_States.Length - 1) loop
             declare
-               Current_Set : State_Set := DFA_States.Element(I);
-               Trans_Map : Transition_Map_Access :=
+               Current_Set : constant State_Set := DFA_States.Element(I);
+               Trans_Map : constant Transition_Map_Access :=
                  new Transition_Map'(0 .. Symbol_Type(NFA.Alphabet.Length - 1) => <>);
             begin
                DFA.Transitions(I) := Trans_Map;
@@ -208,7 +208,7 @@ package body Powerset_Construction is
          -- Build DFA accepting states
          for I in 0 .. State_Type(DFA_States.Length - 1) loop
             declare
-               State_Set_Key : State_Set := DFA_States.Element(I);
+               State_Set_Key : constant State_Set := DFA_States.Element(I);
             begin
                for A of NFA.Accepting loop
                   if State_Set_Key.Contains(A) then
