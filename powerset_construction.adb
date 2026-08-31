@@ -11,6 +11,9 @@ package body Powerset_Construction is
    package State_List_Pkg is new Ada.Containers.Doubly_Linked_Lists(State_Type);
    use State_List_Pkg;
 
+   -- Instantiate a list of State_Set for BFS queue
+   package State_Set_List_Pkg is new Ada.Containers.Doubly_Linked_Lists(State_Set);
+
    -- Hash function for State_Set
    function Hash_State_Set (S : State_Set) return Hash_Type is
       Result : Hash_Type := 0;
@@ -106,7 +109,6 @@ package body Powerset_Construction is
       DFA_Initial : State_Type;
 
       -- Queue for BFS traversal
-      Queue : State_List_Pkg.List;
       Queue_Sets : State_Set_List_Pkg.List;
 
    begin
@@ -153,7 +155,7 @@ package body Powerset_Construction is
          DFA_Transitions_Array : Transition_Array_Access :=
            new Transition_Array'(0 .. Next_State_Index - 1 => null);
       begin
-         -- Populate DFA.States from State_To_Index keys
+         -- Populate DFA.States from State_To_Index values
          for Position Of State_To_Index loop
             DFA.States.Insert(State_To_Index.Element(Position));
          end loop;
@@ -208,9 +210,5 @@ package body Powerset_Construction is
       -- For ε-NFA, the basic powerset construction already handles ε-closure
       return Basic_Powerset_Construction(NFA);
    end Powerset_Construction_With_Epsilon;
-
-   -- Instantiate a list of State_Set for BFS queue
-   package State_Set_List_Pkg is new Ada.Containers.Doubly_Linked_Lists(State_Set);
-   use State_Set_List_Pkg;
 
 end Powerset_Construction;
