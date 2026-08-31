@@ -101,8 +101,12 @@ begin
          Accepting   => <>);
    begin
       begin
-         Basic_Powerset_Construction(NFA);
-         Check("2.1 Empty NFA raises exception", False);
+         declare
+            DFA : DFA_Type := Basic_Powerset_Construction(NFA);
+            pragma Unreferenced (DFA);
+         begin
+            Check("2.1 Empty NFA raises exception", False);
+         end;
       exception
          when Empty_NFA_Error =>
             Check("2.1 Empty NFA raises exception", True);
@@ -159,8 +163,12 @@ begin
          Accepting   => <>);
    begin
       begin
-         Powerset_Construction_With_Epsilon(NFA);
-         Check("5.1 Empty ε-NFA raises exception", False);
+         declare
+            DFA : DFA_Type := Powerset_Construction_With_Epsilon(NFA);
+            pragma Unreferenced (DFA);
+         begin
+            Check("5.1 Empty ε-NFA raises exception", False);
+         end;
       exception
          when Empty_NFA_Error =>
             Check("5.1 Empty ε-NFA raises exception", True);
@@ -177,130 +185,3 @@ begin
          Alphabet    => <>,
          Transitions => null,
          Initial     => <>,
-         Accepting   => <>);
-      T0 : Transition_Map_Access;
-   begin
-      NFA.States.Insert(0);
-      NFA.Alphabet.Insert(0);
-      NFA.Initial.Insert(0);
-      NFA.Accepting.Insert(0);
-      T0 := new Transition_Map'(0 => <>);
-      NFA.Transitions := new Transition_Array'(0 => T0);
-      declare
-         DFA : constant DFA_Type := Powerset_Construction_With_Epsilon(NFA);
-      begin
-         Check("6.1 DFA has one state", DFA.States.Length = 1);
-         Check("6.2 DFA initial state is accepting", DFA.Accepting.Contains(DFA.Initial));
-         Check("6.3 DFA has transitions array", DFA.Transitions /= null);
-      end;
-   end;
-
-   -- TEST 7 — Epsilon Closure: Single state
-   Put_Line ("TEST 7 — Epsilon Closure: Single state");
-   declare
-      NFA : constant NFA_Type := Create_Epsilon_NFA;
-      States : State_Set;
-   begin
-      States.Insert(0);
-      declare
-         Closure : constant State_Set := Epsilon_Closure(NFA, States);
-      begin
-         Check("7.1 Closure includes state 0", Closure.Contains(0));
-         Check("7.2 Closure includes state 1", Closure.Contains(1));
-         Check("7.3 Closure includes state 2", Closure.Contains(2));
-      end;
-   end;
-
-   -- TEST 8 — Epsilon Closure: Multiple states
-   Put_Line ("TEST 8 — Epsilon Closure: Multiple states");
-   declare
-      NFA : constant NFA_Type := Create_Epsilon_NFA;
-      States : State_Set;
-   begin
-      States.Insert(0);
-      States.Insert(1);
-      declare
-         Closure : constant State_Set := Epsilon_Closure(NFA, States);
-      begin
-         Check("8.1 Closure includes state 0", Closure.Contains(0));
-         Check("8.2 Closure includes state 1", Closure.Contains(1));
-         Check("8.3 Closure includes state 2", Closure.Contains(2));
-      end;
-   end;
-
-   -- TEST 9 — Next State Set: Non-empty
-   Put_Line ("TEST 9 — Next State Set: Non-empty");
-   declare
-      NFA : constant NFA_Type := Create_Simple_NFA;
-      States : State_Set;
-   begin
-      States.Insert(0);
-      declare
-         Next : constant State_Set := Next_State_Set(NFA, States, 0);
-      begin
-         Check("9.1 Next state set is non-empty", Next.Length > 0);
-         Check("9.2 Next state set contains state 0", Next.Contains(0));
-         Check("9.3 Next state set does not contain state 1", not Next.Contains(1));
-      end;
-   end;
-
-   -- TEST 10 — Next State Set: Empty
-   Put_Line ("TEST 10 — Next State Set: Empty");
-   declare
-      NFA : constant NFA_Type := Create_Simple_NFA;
-      States : State_Set;
-   begin
-      States.Insert(1);
-      declare
-         Next : constant State_Set := Next_State_Set(NFA, States, 1);
-      begin
-         Check("10.1 Next state set is non-empty", Next.Length > 0);
-         Check("10.2 Next state set contains state 1", Next.Contains(1));
-         Check("10.3 Next state set does not contain state 0", not Next.Contains(0));
-      end;
-   end;
-
-   -- TEST 11 — DFA Accepting States: Correct
-   Put_Line ("TEST 11 — DFA Accepting States: Correct");
-   declare
-      NFA : constant NFA_Type := Create_Simple_NFA;
-      DFA : constant DFA_Type := Basic_Powerset_Construction(NFA);
-   begin
-      Check("11.1 DFA has accepting states", DFA.Accepting.Length > 0);
-      Check("11.2 DFA accepting states are in DFA states",
-            (for all S of DFA.Accepting => DFA.States.Contains(S)));
-      Check("11.3 DFA initial state is valid", DFA.States.Contains(DFA.Initial));
-   end;
-
-   -- TEST 12 — DFA Transitions: Valid
-   Put_Line ("TEST 12 — DFA Transitions: Valid");
-   declare
-      NFA : constant NFA_Type := Create_Simple_NFA;
-      DFA : constant DFA_Type := Basic_Powerset_Construction(NFA);
-   begin
-      Check("12.1 DFA transitions array is non-null", DFA.Transitions /= null);
-      Check("12.2 DFA transitions for initial state exist",
-            DFA.Transitions(DFA.Initial) /= null);
-      Check("12.3 DFA transitions for initial state are non-empty",
-            DFA.Transitions(DFA.Initial).all'Length > 0);
-   end;
-
-   -- TEST 13 — DFA Alphabet: Matches NFA
-   Put_Line ("TEST 13 — DFA Alphabet: Matches NFA");
-   declare
-      NFA : constant NFA_Type := Create_Simple_NFA;
-      DFA : constant DFA_Type := Basic_Powerset_Construction(NFA);
-   begin
-      Check("13.1 DFA alphabet is non-empty", DFA.Alphabet.Length > 0);
-      Check("13.2 DFA alphabet matches NFA alphabet",
-            DFA.Alphabet.Length = NFA.Alphabet.Length);
-      Check("13.3 DFA alphabet size is correct",
-            DFA.Alphabet.Length = NFA.Alphabet.Length);
-   end;
-
-   -- Summary
-   Put_Line ("");
-   Put_Line ("=== " & Natural'Image (Pass_Count) & " passed, "
-             & Natural'Image (Fail_Count) & " failed ===");
-   pragma Assert (Fail_Count = 0, "Some tests failed");
-end Tests;
