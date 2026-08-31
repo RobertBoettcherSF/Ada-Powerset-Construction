@@ -155,8 +155,8 @@ package body Powerset_Construction is
            new Transition_Array'(0 .. Next_State_Index - 1 => null);
       begin
          -- Populate DFA.States from State_To_Index values
-         for Key Of State_To_Index loop
-            DFA.States.Insert(State_To_Index.Element(Key));
+         for Cursor In State_To_Index.Iterate loop
+            DFA.States.Insert(State_Set_Maps.Element(State_To_Index, Cursor));
          end loop;
 
          DFA.Alphabet := NFA.Alphabet;
@@ -164,10 +164,10 @@ package body Powerset_Construction is
          DFA.Transitions := DFA_Transitions_Array;
 
          -- Build DFA transitions
-         for Key Of State_To_Index loop
+         for Cursor In State_To_Index.Iterate loop
             declare
-               Current_Set : State_Set := Key;
-               Current_Index : State_Type := State_To_Index.Element(Key);
+               Current_Set : State_Set := State_Set_Maps.Key(State_To_Index, Cursor);
+               Current_Index : State_Type := State_Set_Maps.Element(State_To_Index, Cursor);
                Trans_Map : Transition_Map_Access :=
                  new Transition_Map'(0 .. Symbol_Type(NFA.Alphabet.Length - 1) => <>);
             begin
@@ -190,13 +190,17 @@ package body Powerset_Construction is
          end loop;
 
          -- Build DFA accepting states
-         for Key Of State_To_Index loop
-            for A of NFA.Accepting loop
-               if Key.Contains(A) then
-                  DFA.Accepting.Insert(State_To_Index.Element(Key));
-                  exit;
-               end if;
-            end loop;
+         for Cursor In State_To_Index.Iterate loop
+            declare
+               State_Set_Key : State_Set := State_Set_Maps.Key(State_To_Index, Cursor);
+            begin
+               for A of NFA.Accepting loop
+                  if State_Set_Key.Contains(A) then
+                     DFA.Accepting.Insert(State_Set_Maps.Element(State_To_Index, Cursor));
+                     exit;
+                  end if;
+               end loop;
+            end;
          end loop;
 
          return DFA;
