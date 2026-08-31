@@ -1,7 +1,7 @@
 --  Powerset Construction Algorithm Implementation
 
+with Ada.Containers.Vectors;
 with Ada.Containers.Doubly_Linked_Lists;
-with Ada.Containers.Hashed_Maps;
 
 package body Powerset_Construction is
 
@@ -11,8 +11,15 @@ package body Powerset_Construction is
    package State_List_Pkg is new Ada.Containers.Doubly_Linked_Lists(State_Type);
    use State_List_Pkg;
 
+   -- Instantiate a vector of State_Set for DFA states
+   package State_Set_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Natural,
+      Element_Type => State_Set);
+   use State_Set_Vectors;
+
    -- Instantiate a list of State_Set for BFS queue
    package State_Set_List_Pkg is new Ada.Containers.Doubly_Linked_Lists(State_Set);
+   use State_Set_List_Pkg;
 
    -- Hash function for State_Set
    function Hash_State_Set (S : State_Set) return Hash_Type is
@@ -24,12 +31,32 @@ package body Powerset_Construction is
       return Result;
    end Hash_State_Set;
 
-   -- Instantiate Hashed_Maps for State_Set -> State_Type mapping
-   package State_Set_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => State_Set,
-      Element_Type    => State_Type,
-      Hash            => Hash_State_Set,
-      Equivalent_Keys => State_Sets."=");
+   -- Helper: Check if two State_Sets are equivalent
+   function State_Sets_Equal (Left, Right : State_Set) return Boolean is
+   begin
+      if Left.Length /= Right.Length then
+         return False;
+      end if;
+      for Item of Left loop
+         if not Right.Contains(Item) then
+            return False;
+         end if;
+      end loop;
+      return True;
+   end State_Sets_Equal;
+
+   -- Helper: Find the index of a State_Set in a vector
+   function Find_State_Set_Index
+     (States : State_Set_Vectors.Vector; Target : State_Set) return Natural
+   is
+   begin
+      for I in 0 .. Natural(States.Length - 1) loop
+         if State_Sets_Equal(States.Element(I), Target) then
+            return I;
+         end if;
+      end loop;
+      return Natural'Last;
+   end Find_State_Set_Index;
 
    -- Helper: Compute ε-closure for a single state
    function Epsilon_Closure_For_State
@@ -97,8 +124,8 @@ package body Powerset_Construction is
 
    -- Basic powerset construction (no ε-moves)
    function Basic_Powerset_Construction (NFA : NFA_Type) return DFA_Type is
-      -- Map from State_Set to State_Type (DFA state)
-      State_To_Index : State_Set_Maps.Map;
+      -- Vector of DFA states (State_Set)
+      DFA_States : State_Set_Vectors.Vector;
 
       -- Current DFA state index
       Next_State_Index : State_Type := 0;
@@ -117,7 +144,7 @@ package body Powerset_Construction is
 
       -- Compute initial DFA state
       Initial_Set := Epsilon_Closure(NFA, Initial_Set);
-      State_To_Index.Insert(Initial_Set, Next_State_Index);
+      DFA_States.Append(Initial_Set);
       DFA_Initial := Next_State_Index;
       Next_State_Index := Next_State_Index + 1;
       Queue_Sets.Append(Initial_Set);
@@ -137,8 +164,8 @@ package body Powerset_Construction is
                   if Next_Set.Length > 0 then
                      Next_Set := Epsilon_Closure(NFA, Next_Set);
                      -- Check if this set is already a DFA state
-                     if not State_To_Index.Contains(Next_Set) then
-                        State_To_Index.Insert(Next_Set, Next_State_Index);
+                     if Find_State_Set_Index(DFA_States, Next_Set) = Natural'Last then
+                        DFA_States.Append(Next_Set);
                         Queue_Sets.Append(Next_Set);
                         Next_State_Index := Next_State_Index + 1;
                      end if;
@@ -154,9 +181,9 @@ package body Powerset_Construction is
          DFA_Transitions_Array : Transition_Array_Access :=
            new Transition_Array'(0 .. Next_State_Index - 1 => null);
       begin
-         -- Populate DFA.States from State_To_Index values
-         for Cursor In State_To_Index.Iterate loop
-            DFA.States.Insert(State_Set_Maps.Element(State_To_Index, Cursor));
+         -- Populate DFA.States from DFA_States indices
+         for I in 0 .. Natural(DFA_States.Length - 1) loop
+            DFA.States.Insert(State_Type(I));
          end loop;
 
          DFA.Alphabet := NFA.Alphabet;
@@ -164,14 +191,13 @@ package body Powerset_Construction is
          DFA.Transitions := DFA_Transitions_Array;
 
          -- Build DFA transitions
-         for Cursor In State_To_Index.Iterate loop
+         for I in 0 .. Natural(DFA_States.Length - 1) loop
             declare
-               Current_Set : State_Set := State_Set_Maps.Key(State_To_Index, Cursor);
-               Current_Index : State_Type := State_Set_Maps.Element(State_To_Index, Cursor);
+               Current_Set : State_Set := DFA_States.Element(I);
                Trans_Map : Transition_Map_Access :=
                  new Transition_Map'(0 .. Symbol_Type(NFA.Alphabet.Length - 1) => <>);
             begin
-               DFA.Transitions(Current_Index) := Trans_Map;
+               DFA.Transitions(I) := Trans_Map;
                for Sym of NFA.Alphabet loop
                   declare
                      Next_Set : State_Set := Next_State_Set(NFA, Current_Set, Sym);
@@ -179,9 +205,9 @@ package body Powerset_Construction is
                   begin
                      if Next_Set.Length > 0 then
                         Next_Set := Epsilon_Closure(NFA, Next_Set);
-                        if State_To_Index.Contains(Next_Set) then
-                           Next_Index := State_To_Index.Element(Next_Set);
-                           DFA.Transitions(Current_Index)(Sym).Insert(Next_Index);
+                        Next_Index := Find_State_Set_Index(DFA_States, Next_Set);
+                        if Next_Index /= Natural'Last then
+                           DFA.Transitions(I)(Sym).Insert(Next_Index);
                         end if;
                      end if;
                   end;
@@ -190,13 +216,13 @@ package body Powerset_Construction is
          end loop;
 
          -- Build DFA accepting states
-         for Cursor In State_To_Index.Iterate loop
+         for I in 0 .. Natural(DFA_States.Length - 1) loop
             declare
-               State_Set_Key : State_Set := State_Set_Maps.Key(State_To_Index, Cursor);
+               State_Set_Key : State_Set := DFA_States.Element(I);
             begin
                for A of NFA.Accepting loop
                   if State_Set_Key.Contains(A) then
-                     DFA.Accepting.Insert(State_Set_Maps.Element(State_To_Index, Cursor));
+                     DFA.Accepting.Insert(I);
                      exit;
                   end if;
                end loop;
