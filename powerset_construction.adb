@@ -54,10 +54,10 @@ package body Powerset_Construction is
    is
       Result : State_Set;
       Stack  : State_List_Pkg.List;
-      Visited : array (State_Type'Range) of Boolean := (others => False);
+      Visited : State_Set;
    begin
       Stack.Append(State);
-      Visited(State) := True;
+      Visited.Insert(State);
 
       while not Stack.Is_Empty loop
          declare
@@ -72,8 +72,8 @@ package body Powerset_Construction is
                NFA.Transitions(Current).all'Length > 0 then
                -- Assume symbol 0 is ε (for simplicity; in practice, use a dedicated ε symbol)
                for S of NFA.Transitions(Current)(0) loop
-                  if not Visited(S) then
-                     Visited(S) := True;
+                  if not Visited.Contains(S) then
+                     Visited.Insert(S);
                      Stack.Append(S);
                   end if;
                end loop;
@@ -223,11 +223,4 @@ package body Powerset_Construction is
       end;
    end Basic_Powerset_Construction;
 
-   -- Powerset construction with ε-closure (for ε-NFA)
-   function Powerset_Construction_With_Epsilon (NFA : NFA_Type) return DFA_Type is
-   begin
-      -- For ε-NFA, the basic powerset construction already handles ε-closure
-      return Basic_Powerset_Construction(NFA);
-   end Powerset_Construction_With_Epsilon;
-
-end Powerset_Construction;
+   -- Powerset construction with ε-closure
