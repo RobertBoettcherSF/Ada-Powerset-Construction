@@ -30,7 +30,6 @@ package body Powerset_Construction is
       Element_Type    => State_Type,
       Hash            => Hash_State_Set,
       Equivalent_Keys => State_Sets."=");
-   use State_Set_Maps;
 
    -- Helper: Compute ε-closure for a single state
    function Epsilon_Closure_For_State
@@ -157,7 +156,7 @@ package body Powerset_Construction is
       begin
          -- Populate DFA.States from State_To_Index values
          for Cursor In State_To_Index.Iterate loop
-            DFA.States.Insert(State_To_Index.Element(Cursor));
+            DFA.States.Insert(State_Set_Maps.Element(State_To_Index, Cursor));
          end loop;
 
          DFA.Alphabet := NFA.Alphabet;
@@ -167,8 +166,8 @@ package body Powerset_Construction is
          -- Build DFA transitions
          for Cursor In State_To_Index.Iterate loop
             declare
-               Current_Set : State_Set := State_To_Index.Key(Cursor);
-               Current_Index : State_Type := State_To_Index.Element(Cursor);
+               Current_Set : State_Set := State_Set_Maps.Key(State_To_Index, Cursor);
+               Current_Index : State_Type := State_Set_Maps.Element(State_To_Index, Cursor);
                Trans_Map : Transition_Map_Access :=
                  new Transition_Map'(0 .. Symbol_Type(NFA.Alphabet.Length - 1) => <>);
             begin
@@ -181,7 +180,7 @@ package body Powerset_Construction is
                      if Next_Set.Length > 0 then
                         Next_Set := Epsilon_Closure(NFA, Next_Set);
                         if State_To_Index.Contains(Next_Set) then
-                           Next_Index := State_To_Index.Element(Next_Set);
+                           Next_Index := State_Set_Maps.Element(State_To_Index, Next_Set);
                            DFA.Transitions(Current_Index)(Sym).Insert(Next_Index);
                         end if;
                      end if;
@@ -193,11 +192,11 @@ package body Powerset_Construction is
          -- Build DFA accepting states
          for Cursor In State_To_Index.Iterate loop
             declare
-               State_Set_Key : State_Set := State_To_Index.Key(Cursor);
+               State_Set_Key : State_Set := State_Set_Maps.Key(State_To_Index, Cursor);
             begin
                for A of NFA.Accepting loop
                   if State_Set_Key.Contains(A) then
-                     DFA.Accepting.Insert(State_To_Index.Element(Cursor));
+                     DFA.Accepting.Insert(State_Set_Maps.Element(State_To_Index, Cursor));
                      exit;
                   end if;
                end loop;
