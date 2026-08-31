@@ -101,11 +101,8 @@ begin
          Accepting   => <>);
    begin
       begin
-         declare
-            DFA : DFA_Type := Basic_Powerset_Construction(NFA);
-         begin
-            Check("2.1 Empty NFA raises exception", False);
-         end;
+         Basic_Powerset_Construction(NFA);
+         Check("2.1 Empty NFA raises exception", False);
       exception
          when Empty_NFA_Error =>
             Check("2.1 Empty NFA raises exception", True);
@@ -162,11 +159,8 @@ begin
          Accepting   => <>);
    begin
       begin
-         declare
-            DFA : DFA_Type := Powerset_Construction_With_Epsilon(NFA);
-         begin
-            Check("5.1 Empty ε-NFA raises exception", False);
-         end;
+         Powerset_Construction_With_Epsilon(NFA);
+         Check("5.1 Empty ε-NFA raises exception", False);
       exception
          when Empty_NFA_Error =>
             Check("5.1 Empty ε-NFA raises exception", True);
