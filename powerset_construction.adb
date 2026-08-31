@@ -223,4 +223,11 @@ package body Powerset_Construction is
       end;
    end Basic_Powerset_Construction;
 
-   -- Powerset construction with ε-closure
+   -- Powerset construction with ε-closure (for ε-NFA)
+   function Powerset_Construction_With_Epsilon (NFA : NFA_Type) return DFA_Type is
+   begin
+      -- For ε-NFA, the basic powerset construction already handles ε-closure
+      return Basic_Powerset_Construction(NFA);
+   end Powerset_Construction_With_Epsilon;
+
+end Powerset_Construction;
